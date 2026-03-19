@@ -17,7 +17,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,44 +47,32 @@ public class TarefaService {
     }
 
     public TaskCreateResponse criar(TaskCreateRequest request, Usuario usuario) {
-        Status status;
-        Prioridade prioridade;
-        try {
-            status = Status.valueOf(request.status());
-            prioridade = Prioridade.valueOf(request.prioridade());
-        } catch (IllegalArgumentException e) {
-            throw new BusinessException("Status ou prioridade inválida");
-        }
+        validarPrazo(request.prazo());
 
         Tarefa tarefa = new Tarefa();
         tarefa.setTitulo(request.titulo());
         tarefa.setDescricao(request.descricao());
-        tarefa.setStatus(status);
-        tarefa.setPrioridade(prioridade);
+        tarefa.setStatus(request.status());
+        tarefa.setPrioridade(request.prioridade());
         tarefa.setPrazo(request.prazo());
         tarefa.setUsuario(usuario);
 
         Tarefa saved = tarefaRepository.save(tarefa);
-
-        String aviso = null;
-        if (request.prazo() != null) {
-            LocalDateTime prazo = request.prazo();
-            if (holidayService.isHoliday(prazo.toLocalDate())) {
-                aviso = "A data do prazo cai em um feriado nacional.";
-            }
-        }
-
-        return new TaskCreateResponse(saved.getId(), aviso);
+        return new TaskCreateResponse(saved.getId(), null);
     }
 
     public TaskResponse atualizar(Long id, TaskUpdateRequest request, Usuario usuario) {
         Tarefa tarefa = tarefaRepository.findByIdAndUsuario(id, usuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
 
-        if (request.titulo() != null)
+        if (request.titulo() != null) {
             tarefa.setTitulo(request.titulo());
-        if (request.descricao() != null)
+        }
+
+        if (request.descricao() != null) {
             tarefa.setDescricao(request.descricao());
+        }
+
         if (request.status() != null) {
             try {
                 tarefa.setStatus(Status.valueOf(request.status()));
@@ -93,29 +80,47 @@ public class TarefaService {
                 throw new BusinessException("Status inválido");
             }
         }
+
         if (request.prioridade() != null) {
             try {
-                tarefa.setPrioridade(com.davison.taskmanager.enums.Prioridade.valueOf(request.prioridade()));
+                tarefa.setPrioridade(Prioridade.valueOf(request.prioridade()));
             } catch (IllegalArgumentException e) {
                 throw new BusinessException("Prioridade inválida");
             }
         }
-        if (request.prazo() != null)
-            tarefa.setPrazo(request.prazo());
 
-        Tarefa updated = tarefaRepository.save(Objects.requireNonNull(tarefa));
+        if (request.prazo() != null) {
+            validarPrazo(request.prazo());
+            tarefa.setPrazo(request.prazo());
+        }
+
+        Tarefa updated = tarefaRepository.save(tarefa);
         return toResponse(updated);
     }
 
     public void remover(Long id, Usuario usuario) {
         Tarefa tarefa = tarefaRepository.findByIdAndUsuario(id, usuario)
                 .orElseThrow(() -> new ResourceNotFoundException("Tarefa não encontrada"));
-        tarefaRepository.delete(Objects.requireNonNull(tarefa));
+        tarefaRepository.delete(tarefa);
     }
 
     public List<TaskResponse> listarVencidas(Usuario usuario) {
         List<Tarefa> tarefas = tarefaRepository.findTarefasVencidas(usuario, LocalDateTime.now());
         return tarefas.stream().map(this::toResponse).collect(Collectors.toList());
+    }
+
+    private void validarPrazo(LocalDateTime prazo) {
+        if (prazo == null) {
+            throw new BusinessException("O prazo é obrigatório");
+        }
+
+        if (prazo.isBefore(LocalDateTime.now())) {
+            throw new BusinessException("O prazo deve ser uma data futura");
+        }
+
+        if (holidayService.isHoliday(prazo.toLocalDate())) {
+            throw new BusinessException("Não é permitido agendar tarefas para feriados nacionais");
+        }
     }
 
     private TaskResponse toResponse(Tarefa tarefa) {
@@ -127,6 +132,7 @@ public class TarefaService {
                 tarefa.getPrioridade().name(),
                 tarefa.getPrazo(),
                 tarefa.getUsuario().getId(),
-                tarefa.getUsuario().getNome());
+                tarefa.getUsuario().getNome()
+        );
     }
 }
