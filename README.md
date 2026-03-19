@@ -161,6 +161,23 @@ cd taskmanager
 ```bash
 mvn spring-boot:run
 ```
+Usando Maven Wrapper (recomendado)
+
+**Linux / Mac:**
+```bash
+./mvnw spring-boot:run
+```
+
+**Windows:**
+```bash
+mvnw.cmd spring-boot:run
+```
+
+Caso necessário:
+
+```bash
+chmod +x mvnw
+```
 
 3. **Acesse a documentação:**
 - Swagger UI: http://localhost:8080/swagger-ui.html
