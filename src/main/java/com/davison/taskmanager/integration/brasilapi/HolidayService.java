@@ -18,16 +18,17 @@ public class HolidayService {
         this.brasilApiClient = brasilApiClient;
     }
 
-    public boolean isHoliday(LocalDate date) {
+    public String findHoliday(LocalDate date) {
         try {
             int year = date.getYear();
             List<HolidayDto> holidays = brasilApiClient.getHolidays(year).block();
+            HolidayDto holidayVazio = new HolidayDto(null, null);
             if (holidays != null) {
-                return holidays.stream().anyMatch(h -> h.date().equals(date));
+                return holidays.stream().filter(h -> h.date().equals(date)).findFirst().orElse(holidayVazio).name();
             }
         } catch (Exception e) {
             logger.warn("Falha ao consultar feriados na Brasil API para a data {}: {}", date, e.getMessage());
         }
-        return false;
+        return null;
     }
 }

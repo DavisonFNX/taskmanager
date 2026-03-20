@@ -27,6 +27,7 @@ public class BrasilApiClient {
                 .retrieve()
                 .bodyToFlux(HolidayDto.class)
                 .collectList()
+
                 // 🔥 Retry apenas para erro 5xx
                 .retryWhen(
                         Retry.backoff(3, Duration.ofSeconds(2)) // 3 tentativas com backoff

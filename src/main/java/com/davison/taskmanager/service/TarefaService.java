@@ -1,5 +1,12 @@
 package com.davison.taskmanager.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+
 import com.davison.taskmanager.dto.task.TaskCreateRequest;
 import com.davison.taskmanager.dto.task.TaskCreateResponse;
 import com.davison.taskmanager.dto.task.TaskResponse;
@@ -12,22 +19,19 @@ import com.davison.taskmanager.exception.BusinessException;
 import com.davison.taskmanager.exception.ResourceNotFoundException;
 import com.davison.taskmanager.integration.brasilapi.HolidayService;
 import com.davison.taskmanager.repository.TarefaRepository;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import com.davison.taskmanager.repository.UsuarioRepository;
 
 @Service
 public class TarefaService {
 
     private final TarefaRepository tarefaRepository;
     private final HolidayService holidayService;
+    private final UsuarioRepository usuarioRepository;
 
-    public TarefaService(TarefaRepository tarefaRepository, HolidayService holidayService) {
+    public TarefaService(TarefaRepository tarefaRepository, HolidayService holidayService, UsuarioRepository usuarioRepository) {
         this.tarefaRepository = tarefaRepository;
         this.holidayService = holidayService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     public List<TaskResponse> listarTarefas(Usuario usuario, Status status, Sort sort) {
@@ -48,7 +52,7 @@ public class TarefaService {
 
     public TaskCreateResponse criar(TaskCreateRequest request, Usuario usuario) {
         validarPrazo(request.prazo());
-
+        String avisoFeriado = null;
         Tarefa tarefa = new Tarefa();
         tarefa.setTitulo(request.titulo());
         tarefa.setDescricao(request.descricao());
@@ -56,9 +60,15 @@ public class TarefaService {
         tarefa.setPrioridade(request.prioridade());
         tarefa.setPrazo(request.prazo());
         tarefa.setUsuario(usuario);
+        String feriado = holidayService.findHoliday(request.prazo().toLocalDate());
+        
+         if (feriado != null) {
+            avisoFeriado = "Atencao: o prazo informado cai em um feriado nacional (" + feriado + ").";
+        }
 
         Tarefa saved = tarefaRepository.save(tarefa);
-        return new TaskCreateResponse(saved.getId(), null);
+
+        return new TaskCreateResponse(saved.getId(), avisoFeriado);
     }
 
     public TaskResponse atualizar(Long id, TaskUpdateRequest request, Usuario usuario) {
@@ -118,9 +128,6 @@ public class TarefaService {
             throw new BusinessException("O prazo deve ser uma data futura");
         }
 
-        if (holidayService.isHoliday(prazo.toLocalDate())) {
-            throw new BusinessException("Não é permitido agendar tarefas para feriados nacionais");
-        }
     }
 
     private TaskResponse toResponse(Tarefa tarefa) {
@@ -134,5 +141,10 @@ public class TarefaService {
                 tarefa.getUsuario().getId(),
                 tarefa.getUsuario().getNome()
         );
+    }
+
+    public Usuario findUserByEmail(String email) {
+        return usuarioRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado"));
     }
 }
