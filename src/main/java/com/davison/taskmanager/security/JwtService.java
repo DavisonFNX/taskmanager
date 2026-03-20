@@ -1,21 +1,25 @@
 package com.davison.taskmanager.security;
 
+import java.util.Date;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.springframework.stereotype.Service;
-
-import java.util.Date;
 
 @Service
 public class JwtService {
 
-    private static final String SECRET_KEY = "mySecretKeyForJwtTokenGenerationThatIsLongEnough123456789"; // Use uma chave segura em produção
+    @Value("${jwt.secret}")
+    private String secretKey;
+
     private static final long EXPIRATION_TIME = 86400000; // 24 horas
 
     private Algorithm getAlgorithm() {
-        return Algorithm.HMAC256(SECRET_KEY);
+        return Algorithm.HMAC256(secretKey);
     }
 
     public String generateToken(String email) {

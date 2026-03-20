@@ -1,12 +1,16 @@
 package com.davison.taskmanager.integration.brasilapi;
 
-import org.springframework.stereotype.Service;
-
 import java.time.LocalDate;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
 @Service
 public class HolidayService {
+
+    private static final Logger logger = LoggerFactory.getLogger(HolidayService.class);
 
     private final BrasilApiClient brasilApiClient;
 
@@ -22,7 +26,7 @@ public class HolidayService {
                 return holidays.stream().anyMatch(h -> h.date().equals(date));
             }
         } catch (Exception e) {
-            // Ignore API failure
+            logger.warn("Falha ao consultar feriados na Brasil API para a data {}: {}", date, e.getMessage());
         }
         return false;
     }

@@ -143,6 +143,28 @@ A API retorna respostas padronizadas para erros:
 }
 ```
 
+## Configuração de Ambiente
+
+### Variáveis de Ambiente
+
+A aplicação requer a configuração da seguinte variável de ambiente para o funcionamento correto da autenticação JWT:
+
+- `JWT_SECRET`: Chave secreta usada para assinar os tokens JWT. Deve ser uma string segura e longa (mínimo 32 caracteres).
+
+**Exemplo de configuração:**
+```bash
+export JWT_SECRET="sua-chave-secreta-muito-segura-aqui"
+```
+
+Ou crie um arquivo `.env` na raiz do projeto com:
+```
+JWT_SECRET=sua-chave-secreta-muito-segura-aqui
+```
+
+**Nota:** O arquivo `.env` está incluído no `.gitignore` para evitar o commit de chaves sensíveis no repositório.
+
+Se a variável não for configurada, a aplicação falhará na inicialização.
+
 ## Executando a Aplicação
 
 ### Pré-requisitos
