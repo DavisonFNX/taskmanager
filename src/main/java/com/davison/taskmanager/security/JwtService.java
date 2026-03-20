@@ -13,7 +13,7 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
+    @Value("${JWT_SECRET}")
     private String secretKey;
 
     private static final long EXPIRATION_TIME = 86400000; // 24 horas
